@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-
+const readline = require('readline');
 const fs = require('fs/promises');
 const path = require('path');
 const { parseFile } = require('music-metadata');
@@ -9,7 +9,7 @@ const cliProgress = require('cli-progress');
 
 
 
-const limit = pLimit(5);//максимум 5 задач одновременно
+const limit = pLimit(5); //максимум 5 задач одновременно
 
 
 const inputPath = process.argv[2];
@@ -29,6 +29,49 @@ if (!filterWords) {
 
 // Приводим путь к абсолютному
 const musicPath = path.resolve(inputPath);
+
+
+//запрос названия папки для копий
+function askFolder(query) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise(resolve => rl.question(query, answer => {
+    rl.close();
+    resolve(answer.trim());
+  }));
+}
+
+
+//копирование
+async function copySong(file, destinationDir) {
+  const sourcePath = file.path;
+  const filename = path.basename(sourcePath);
+  const destPath = path.join(destinationDir, filename);
+  await fs.copyFile(sourcePath, destPath);
+}
+
+
+async function copyFilteredSongs(filteredSongs, musicPath) {
+  const folderName = await askFolder('Как назвать новую папку для копий? ');
+  const destinationDir = path.join(musicPath, folderName);
+
+  await fs.mkdir(destinationDir, { recursive: true });
+
+  for (const song of filteredSongs) {
+    try {
+      await copySong(song, destinationDir);
+      console.log(`Скопировано: ${song.path}`);
+    } catch (err) {
+      console.error(`Ошибка при копировании ${song.path}: ${err.message}`);
+    }
+  }
+
+  console.log(`Готово! Все файлы скопированы в ${destinationDir}`);
+}
+
 
 
 //считывание метаданных
@@ -92,6 +135,14 @@ return hasWordInTitle || hasWordInArtist || hasWordInFilename;
 
 console.log(`Файлов, содержащих "${filterWords}": ${filteredSongs.length}`);
 console.log(filteredSongs);
+
+
+//копирование
+if (filteredSongs.length > 0) {
+  await copyFilteredSongs(filteredSongs, musicPath);
+} else {
+  console.log("Нет подходящих файлов для копирования.");
+}
 
 
     } catch (error) {
