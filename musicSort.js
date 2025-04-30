@@ -4,10 +4,17 @@
 const fs = require('fs/promises');
 const path = require('path');
 const { parseFile } = require('music-metadata');
+const pLimit = require('p-limit').default;
+const cliProgress = require('cli-progress');
+
+
+
+const limit = pLimit(5);//максимум 5 задач одновременно
 
 
 const inputPath = process.argv[2];
 const filterWords  = process.argv.slice(3);
+
 
 //проверка аргументов
 if (!inputPath) {
@@ -50,14 +57,24 @@ async function main() {
     try {
 	
         const files = await fs.readdir(musicPath);
-
-
         console.log(`Всего файлов найдено: ${files.length}`);
 
+// создаём прогресс-бар
+const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+bar.start(files.length, 0); // старт: всего файлов, начальное значение — 0
+
+
 //получение метаданных из всех песен
-const mdPromises = files.map(file => mm(path.join(musicPath, file)));
+const mdPromises = files.map(file =>
+  limit(async () => {
+    const metadata = await mm(path.join(musicPath, file));
+    bar.increment(); // обновляем прогресс после каждого завершения
+    return metadata;
+  })
+);
 
 const allMetadata = await Promise.all(mdPromises);
+bar.stop();
 
 //фильтрация
 const filteredSongs = allMetadata.filter(file => {
