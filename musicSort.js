@@ -8,7 +8,6 @@ const pLimit = require('p-limit').default;
 const cliProgress = require('cli-progress');
 
 
-
 const limit = pLimit(5); //максимум 5 задач одновременно
 
 
@@ -31,8 +30,8 @@ if (!filterWords) {
 const musicPath = path.resolve(inputPath);
 
 
-//запрос названия папки для копий
-function askFolder(query) {
+//запрос названия папки для копий, плейлиста итд
+function askName(query) {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -55,7 +54,7 @@ async function copySong(file, destinationDir) {
 
 
 async function copyFilteredSongs(filteredSongs, musicPath) {
-  const folderName = await askFolder('Как назвать новую папку для копий? ');
+  const folderName = await askName('Как назвать новую папку для копий? ');
   const destinationDir = path.join(musicPath, folderName);
 
   await fs.mkdir(destinationDir, { recursive: true });
@@ -72,6 +71,22 @@ async function copyFilteredSongs(filteredSongs, musicPath) {
   console.log(`Готово! Все файлы скопированы в ${destinationDir}`);
 }
 
+
+
+//создание плейлиста на основе песен
+async function createPlaylist(songs, musicPath) {
+  const playlistName = await askName('Введите имя для плейлиста (без расширения): ');
+  const playlistPath = path.join(musicPath, `${playlistName}.m3u`);
+
+  const lines = ['#EXTM3U'];
+
+  for (const song of songs) {
+    lines.push(song.path);
+  }
+
+  await fs.writeFile(playlistPath, lines.join('\n'), { encoding: 'utf8', flag: 'w' });
+  console.log(`Плейлист создан: ${playlistPath}`);
+}
 
 
 //считывание метаданных
@@ -137,12 +152,20 @@ console.log(`Файлов, содержащих "${filterWords}": ${filteredSong
 console.log(filteredSongs);
 
 
-//копирование
+/*копирование
 if (filteredSongs.length > 0) {
   await copyFilteredSongs(filteredSongs, musicPath);
 } else {
   console.log("Нет подходящих файлов для копирования.");
 }
+*/
+
+//создание плейлиста
+if (filteredSongs.length > 0){
+	await createPlaylist(filteredSongs, musicPath);
+} else {
+	console.log("Нет подходящих файлов для добавления в плейлист");
+	}
 
 
     } catch (error) {
@@ -152,3 +175,4 @@ if (filteredSongs.length > 0) {
 
 
 main();
+
