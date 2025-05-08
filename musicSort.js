@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
-const readline = require('readline');
-const fs = require('fs/promises');
+
+const { askName, copySong, copyFilteredSongs, createPlaylist, getMetadata } = require("./utils.js");
 const path = require('path');
-const { parseFile } = require('music-metadata');
+const fs = require('fs/promises');
 const pLimit = require('p-limit').default;
 const cliProgress = require('cli-progress');
+const selectMenu = require('@inquirer/select').default;
 
 
-const limit = pLimit(5); //максимум 5 задач одновременно
 
+const limit = pLimit(5); 
 
 const inputPath = process.argv[2];
 const filterWords  = process.argv.slice(3);
@@ -30,84 +31,19 @@ if (!filterWords) {
 const musicPath = path.resolve(inputPath);
 
 
-//запрос названия папки для копий, плейлиста итд
-function askName(query) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
+
+
+async function chooseAction() {
+  const action = await selectMenu({
+    message: 'Что сделать с найденными файлами?',
+    choices: [
+      { name: 'Создать плейлист', value: 'playlist' },
+      { name: 'Скопировать отфильтрованные файлы', value: 'copy' }
+    ]
   });
 
-  return new Promise(resolve => rl.question(query, answer => {
-    rl.close();
-    resolve(answer.trim());
-  }));
+  return action;
 }
-
-
-//копирование
-async function copySong(file, destinationDir) {
-  const sourcePath = file.path;
-  const filename = path.basename(sourcePath);
-  const destPath = path.join(destinationDir, filename);
-  await fs.copyFile(sourcePath, destPath);
-}
-
-
-async function copyFilteredSongs(filteredSongs, musicPath) {
-  const folderName = await askName('Как назвать новую папку для копий? ');
-  const destinationDir = path.join(musicPath, folderName);
-
-  await fs.mkdir(destinationDir, { recursive: true });
-
-  for (const song of filteredSongs) {
-    try {
-      await copySong(song, destinationDir);
-      console.log(`Скопировано: ${song.path}`);
-    } catch (err) {
-      console.error(`Ошибка при копировании ${song.path}: ${err.message}`);
-    }
-  }
-
-  console.log(`Готово! Все файлы скопированы в ${destinationDir}`);
-}
-
-
-
-//создание плейлиста на основе песен
-async function createPlaylist(songs, musicPath) {
-  const playlistName = await askName('Введите имя для плейлиста (без расширения): ');
-  const playlistPath = path.join(musicPath, `${playlistName}.m3u`);
-
-  const lines = ['#EXTM3U'];
-
-  for (const song of songs) {
-    lines.push(song.path);
-  }
-
-  await fs.writeFile(playlistPath, lines.join('\n'), { encoding: 'utf8', flag: 'w' });
-  console.log(`Плейлист создан: ${playlistPath}`);
-}
-
-
-//считывание метаданных
-async function mm(filePath) {
-  try {
-    const metadata = await parseFile(filePath);
-return {
-	title: metadata.common.title,
-	artist: metadata.common.artist,
-	path: filePath,
-	}
-
-} catch (error) {
-   	return{
-		path: filePath,
-		error: error.message,
-	}
-
-  }
-};
-
 
 
 
@@ -125,7 +61,7 @@ bar.start(files.length, 0); // старт: всего файлов, началь
 //получение метаданных из всех песен
 const mdPromises = files.map(file =>
   limit(async () => {
-    const metadata = await mm(path.join(musicPath, file));
+    const metadata = await getMetadata(path.join(musicPath, file));
     bar.increment(); // обновляем прогресс после каждого завершения
     return metadata;
   })
@@ -152,20 +88,18 @@ console.log(`Файлов, содержащих "${filterWords}": ${filteredSong
 console.log(filteredSongs);
 
 
-/*копирование
+//меню
 if (filteredSongs.length > 0) {
-  await copyFilteredSongs(filteredSongs, musicPath);
-} else {
-  console.log("Нет подходящих файлов для копирования.");
-}
-*/
+  const action = await chooseAction();
 
-//создание плейлиста
-if (filteredSongs.length > 0){
-	await createPlaylist(filteredSongs, musicPath);
+  if (action === 'playlist') {
+    await createPlaylist(filteredSongs, musicPath);
+  } else if (action === 'copy') {
+    await copyFilteredSongs(filteredSongs, musicPath);
+  }
 } else {
-	console.log("Нет подходящих файлов для добавления в плейлист");
-	}
+  console.log("Нет подходящих файлов.");
+}
 
 
     } catch (error) {
