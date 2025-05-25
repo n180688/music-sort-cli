@@ -10,11 +10,14 @@ async function askName(message) {
 
 
 //копирование
+/*В SOURCEPATH был file.path,
+main сломается, переписать*/
+
 async function copySong(file, destinationDir) {
-  const sourcePath = file.path;
-  const filename = path.basename(sourcePath);
+  const filename = path.basename(file);
   const destPath = path.join(destinationDir, filename);
-  await fs.copyFile(sourcePath, destPath);
+  await fs.copyFile(file, destPath);
+console.log(`${filename} скопирован в ${destPath}`);
 }
 
 
