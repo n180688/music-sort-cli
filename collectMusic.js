@@ -1,7 +1,7 @@
 const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs/promises');
-const { askName, copySong, copyFilteredSongs, createPlaylist, getMetadata } = require("./utils.js");
+const { askName, copySong, copyFilteredSongs, createPlaylist, getMetadata, normalizePath } = require("./utils.js");
 
 
 function findMusicFiles( searchPath, excludeDir) {
@@ -26,7 +26,7 @@ function findMusicFiles( searchPath, excludeDir) {
 
 async function collectMusic(searchPath, excludeDir,  destDir) {
 //поиск от домашней папки, для термукса
-searchPath  = `${path.resolve(process.env.HOME, searchPath)}/`;
+searchPath  = normalizePath(searchPath);
 excludeDir = `${path.resolve(searchPath, excludeDir)}`;
 //папка назначения по умолчанию та  что исключена
 destDir = `${path.resolve(searchPath, excludeDir)}`;

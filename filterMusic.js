@@ -1,4 +1,4 @@
-const { getMetadata } = require("./utils.js");
+const { getMetadata, normalizePath } = require("./utils.js");
 const path = require('path');
 const fs = require('fs/promises');
 const pLimit = require('p-limit').default;
@@ -9,7 +9,7 @@ const limit = pLimit(5);
 
 
 
-async function filterMusic(inputPath = `${process.env.HOME}/storage/shared/Music/Музыка` , filterWords) {
+async function filterMusic(inputPath, filterWords) {
 //проверка аргументов
 if (!inputPath) {
     console.error("Ошибка: не указан путь");
@@ -20,13 +20,13 @@ if (!filterWords) {
     console.error("Ошибка: Укажи слова для фильтрации!");
     process.exit(1);
 } 
-// Приводим путь к абсолютному                                    
-const musicPath = path.resolve(inputPath);
-
+   
+//поиск от домашней папки, для термукса
+inputPath  = normalizePath(inputPath);
 
     try {
 
-        const files = await fs.readdir(musicPath);
+        const files = await fs.readdir(inputPath);
         console.log(`Всего файлов найдено: ${files.length}`);
 
 // создаём прогресс-бар
@@ -37,7 +37,7 @@ bar.start(files.length, 0); // старт: всего файлов, началь
 //получение метаданных из всех песен
 const mdPromises = files.map(file =>
   limit(async () => {
-    const metadata = await getMetadata(path.join(musicPath, file));
+    const metadata = await getMetadata(path.join(inputPath, file));
     bar.increment(); // обновляем прогресс после каждого завершения
     return metadata;
   })

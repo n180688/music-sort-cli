@@ -34,7 +34,29 @@ if (action === 'filter') {
   const inputPath = await askName('Укажи путь к папке с музыкой: ');
   const query = await askName('Укажи слова для фильтрации через пробел: ');
   const filterWords = query.split(' ').filter(Boolean);
-  await filterMusic(inputPath, filterWords);
+  //получаем найденное
+  const filteredSongs =  await filterMusic(inputPath, filterWords);
+	
+
+	const subAction = await selectMenu({
+    message: 'Что сделать с найденными файлами?',
+    choices: [
+  //{ name: '1. Скопировать', value: 'copy' },
+      { name: '2. Создать плейлист', value: 'playlist' },
+      { name: '3. Вернуться в меню', value: 'back' }
+    ]
+  });
+
+  if (subAction === 'copy') {
+    const dest = normalizePath(await askName('Куда копировать?: '));
+    await copyFilteredSongs(filteredSongs, dest);
+  }
+    else if (subAction === 'playlist') {
+    await createPlaylist(filteredSongs, inputPath);
+  } else {
+    console.log('Возврат в главное меню...');
+  }
+
 }
 
 }

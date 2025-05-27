@@ -9,6 +9,12 @@ async function askName(message) {
 }
 
 
+//для термукса
+function normalizePath(inputPath) {
+  return path.resolve(process.env.HOME, inputPath) + '/';
+}
+
+
 //копирование
 /*В SOURCEPATH был file.path,
 main сломается, переписать*/
@@ -43,6 +49,7 @@ async function copyFilteredSongs(filteredSongs, musicPath) {
 //создание плейлиста 
  async function createPlaylist(songs, musicPath) {
   const playlistName = await askName('Введите имя для плейлиста (без расширения): ');
+musicPath = normalizePath(musicPath);
   const playlistPath = path.join(musicPath, `${playlistName}.m3u`);
 
   const lines = ['#EXTM3U'];
@@ -78,4 +85,5 @@ return {
 
 
 
-module.exports = { askName, copySong, copyFilteredSongs, createPlaylist, getMetadata };
+module.exports = { askName, copySong, copyFilteredSongs, createPlaylist, getMetadata, normalizePath };
+
