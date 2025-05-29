@@ -2,6 +2,34 @@ const { input } = require('@inquirer/prompts');
 const fs = require('fs/promises');
 const { parseFile } = require('music-metadata');
 const path = require('path');
+const pLimit = require('p-limit').default;
+const cliProgress = require('cli-progress');
+
+
+const limit = pLimit(5);
+
+async function getAllMetadataFromDir(inputPath) {
+  inputPath = normalizePath(inputPath);
+  const files = await fs.readdir(inputPath);
+  console.log(`Всего файлов найдено: ${files.length}`);
+
+  const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+  bar.start(files.length, 0);
+
+  const mdPromises = files.map(file =>
+    limit(async () => {
+      const metadata = await getMetadata(path.join(inputPath, file));
+      bar.increment();
+      return metadata;
+    })
+  );
+
+  const allMetadata = await Promise.all(mdPromises);
+  bar.stop();
+  return allMetadata;
+}
+
+
 
 //запрос названия
 async function askName(message) {
@@ -15,9 +43,6 @@ function normalizePath(inputPath) {
 }
 
 
-//копирование
-/*В SOURCEPATH был file.path,
-main сломается, переписать*/
 
 async function copySong(file, destinationDir) {
   const filename = path.basename(file);
@@ -27,15 +52,16 @@ console.log(`${filename} скопирован в ${destPath}`);
 }
 
 
-async function copyFilteredSongs(filteredSongs, musicPath) {
+async function copyFilteredSongs(filteredSongs) {
   const folderName = await askName('Как назвать новую папку для копий? ');
-  const destinationDir = path.join(musicPath, folderName);
+  const pathToCopy = normalizePath(await askName('Куда копировать?'));
+  const  destinationDir = path.join(pathToCopy, folderName);
 
   await fs.mkdir(destinationDir, { recursive: true });
 
   for (const song of filteredSongs) {
     try {
-      await copySong(song, destinationDir);
+      await copySong(song.path, destinationDir);
       console.log(`Скопировано: ${song.path}`);
     } catch (err) {
       console.error(`Ошибка при копировании ${song.path}: ${err.message}`);
@@ -85,5 +111,5 @@ return {
 
 
 
-module.exports = { askName, copySong, copyFilteredSongs, createPlaylist, getMetadata, normalizePath };
+module.exports = { askName, copySong, copyFilteredSongs, createPlaylist, getMetadata, normalizePath, getAllMetadataFromDir  };
 

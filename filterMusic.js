@@ -1,11 +1,20 @@
-const { getMetadata, normalizePath } = require("./utils.js");
+const { getMetadata, normalizePath, getAllMetadataFromDir } = require("./utils.js");
 const path = require('path');
-const fs = require('fs/promises');
-const pLimit = require('p-limit').default;
-const cliProgress = require('cli-progress');
 
 
-const limit = pLimit(5);
+
+async function findSongsWithoutMetadata(inputPath) {
+  const allMetadata = await getAllMetadataFromDir(inputPath);
+
+  const missingMetadata = allMetadata.filter(song => {
+    return song.title === undefined || !song.artist === undefined;
+  });
+
+  console.log(`Песен без метаданных: ${missingMetadata.length}`);
+  console.log(missingMetadata);
+
+  return missingMetadata;
+}
 
 
 
@@ -26,25 +35,8 @@ inputPath  = normalizePath(inputPath);
 
     try {
 
-        const files = await fs.readdir(inputPath);
-        console.log(`Всего файлов найдено: ${files.length}`);
-
-// создаём прогресс-бар
-const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-bar.start(files.length, 0); // старт: всего файлов, начальное значение — 0
-
-
 //получение метаданных из всех песен
-const mdPromises = files.map(file =>
-  limit(async () => {
-    const metadata = await getMetadata(path.join(inputPath, file));
-    bar.increment(); // обновляем прогресс после каждого завершения
-    return metadata;
-  })
-);
-
-const allMetadata = await Promise.all(mdPromises);
-bar.stop();
+const allMetadata = await getAllMetadataFromDir(inputPath);
 
 //фильтрация
 const filteredSongs = allMetadata.filter(file => {
@@ -70,4 +62,4 @@ return filteredSongs;
 }
 
 
-module.exports = { filterMusic };
+module.exports = { filterMusic, findSongsWithoutMetadata };
