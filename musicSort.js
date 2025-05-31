@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 
-const { askName, copySong, copyFilteredSongs, createPlaylist, getMetadata } = require("./utils.js");
+const { askName, copySong, copyFilteredSongs, createPlaylist } = require("./utils.js");
 const { collectMusic } = require('./collectMusic.js');
 const { filterMusic, findSongsWithoutMetadata } = require('./filterMusic.js');
+const { writeMetadataFromFile } = require('./metadata.js');
 const path = require('path');
 const fs = require('fs/promises');
 const selectMenu = require('@inquirer/select').default;
@@ -17,8 +18,9 @@ const action = await selectMenu(
 { message: 'Выбери действие:', choices: [ 
 { name: '1. Собрать треки в папку', value: 'collect' },
 { name: '2. Найти по запросу', value: 'filter' },
-{ name: '3. Найти песни без метаданных', value: 'missingMeta' }, 
-{ name: '4. Выйти', value: 'exit' } ] });
+{ name: '3. Найти песни без метаданных', value: 'missingMeta' },
+{ name: '4. Вписать метаданные из файла', value: 'writeMeta' }, 
+{ name: '5. Выйти', value: 'exit' } ] });
 
 if (action === 'exit') {
   console.log('Выход...');
@@ -34,6 +36,12 @@ if (action === 'collect') {
 if (action === 'missingMeta') {
   const inputPath = await askName('Укажи путь к папке с музыкой: ');
   await findSongsWithoutMetadata(inputPath);
+}
+
+if (action === 'writeMeta') {
+  const file = await askName('Укажи путь к JSON с треками (по умолчанию ./undefined.json): ');
+  const filePath = file.trim() === '' ? './undefined.json' : file;
+  await writeMetadataFromFile(filePath);
 }
 
 if (action === 'filter') {

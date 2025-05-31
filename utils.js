@@ -2,33 +2,6 @@ const { input } = require('@inquirer/prompts');
 const fs = require('fs/promises');
 const { parseFile } = require('music-metadata');
 const path = require('path');
-const pLimit = require('p-limit').default;
-const cliProgress = require('cli-progress');
-
-
-const limit = pLimit(5);
-
-async function getAllMetadataFromDir(inputPath) {
-  inputPath = normalizePath(inputPath);
-  const files = await fs.readdir(inputPath);
-  console.log(`Всего файлов найдено: ${files.length}`);
-
-  const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-  bar.start(files.length, 0);
-
-  const mdPromises = files.map(file =>
-    limit(async () => {
-      const metadata = await getMetadata(path.join(inputPath, file));
-      bar.increment();
-      return metadata;
-    })
-  );
-
-  const allMetadata = await Promise.all(mdPromises);
-  bar.stop();
-  return allMetadata;
-}
-
 
 
 //запрос названия
@@ -37,13 +10,37 @@ async function askName(message) {
 }
 
 
+//сохраняет массив треков в json
+async function saveTracksToJSON(tracks, fileName = 'undefined.json') {
+  const filePath = path.resolve(process.cwd(), fileName);
+
+const formatted = tracks.map(track => ({
+    title: track.title || '',
+    artist: track.artist || '',
+    duration: track.duration || '',
+    path: track.path
+  }));
+
+const jsonData = JSON.stringify(formatted, null, 2);
+
+
+  try {
+    await fs.writeFile(filePath, jsonData, 'utf8');
+    console.log(` Список сохранён в файл: ${filePath}`);
+  } catch (err) {
+    console.error(`Не удалось сохранить JSON: ${err.message}`);
+  }
+}
+
+
+
 //для термукса
 function normalizePath(inputPath) {
   return path.resolve(process.env.HOME, inputPath) + '/';
 }
 
 
-
+//копирование
 async function copySong(file, destinationDir) {
   const filename = path.basename(file);
   const destPath = path.join(destinationDir, filename);
@@ -89,27 +86,9 @@ musicPath = normalizePath(musicPath);
 }
 
 
-//считывание метаданных
-async function getMetadata(filePath) {
-  try {
-    const metadata = await parseFile(filePath);
-return {
-        title: metadata.common.title,
-        artist: metadata.common.artist,
-	duration: `${Math.floor(metadata.format.duration/60)}:${Math.round(metadata.format.duration%60).toString().padStart(2, '0')}`,
-        path: filePath,
-        }
-
-} catch (error) {
-        return{
-                path: filePath,
-                error: error.message,
-        }
-
-  }
-};
 
 
 
-module.exports = { askName, copySong, copyFilteredSongs, createPlaylist, getMetadata, normalizePath, getAllMetadataFromDir  };
+
+module.exports = { askName, copySong, copyFilteredSongs, createPlaylist,  normalizePath, saveTracksToJSON };
 

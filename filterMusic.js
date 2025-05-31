@@ -1,4 +1,5 @@
-const { getMetadata, normalizePath, getAllMetadataFromDir } = require("./utils.js");
+const { getMetadata,  getAllMetadataFromDir } = require("./metadata.js");
+const { normalizePath, saveTracksToJSON } = require('./utils.js');
 const path = require('path');
 
 
@@ -7,13 +8,14 @@ async function findSongsWithoutMetadata(inputPath) {
   const allMetadata = await getAllMetadataFromDir(inputPath);
 
   const missingMetadata = allMetadata.filter(song => {
-    return song.title === undefined || !song.artist === undefined;
+    return song.title === undefined || song.artist === undefined;
   });
 
   console.log(`Песен без метаданных: ${missingMetadata.length}`);
-  console.log(missingMetadata);
+  
 
-  return missingMetadata;
+await saveTracksToJSON(missingMetadata);
+return missingMetadata;
 }
 
 

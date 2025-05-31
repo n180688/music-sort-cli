@@ -1,7 +1,8 @@
 const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs/promises');
-const { askName, copySong, copyFilteredSongs, createPlaylist, getMetadata, normalizePath } = require("./utils.js");
+const { askName, copySong, copyFilteredSongs, createPlaylist, normalizePath } = require("./utils.js");
+const { getMetadata } = require('./metadata.js');
 
 
 function findMusicFiles( searchPath, excludeDir) {

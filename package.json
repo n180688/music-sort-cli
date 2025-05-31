@@ -13,6 +13,7 @@
     "@inquirer/select": "^4.2.0",
     "cli-progress": "^3.12.0",
     "music-metadata": "^11.2.1",
+    "node-id3": "^0.2.9",
     "p-limit": "^6.2.0"
   }
 }
