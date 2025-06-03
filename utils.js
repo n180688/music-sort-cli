@@ -1,7 +1,65 @@
 const { input } = require('@inquirer/prompts');
 const fs = require('fs/promises');
+const fsS = require('fs');
 const { parseFile } = require('music-metadata');
 const path = require('path');
+const archiver = require('archiver');
+
+
+
+async function archiveFiles(inputPaths, outputDir, {
+  archiveName = 'archive',
+  log = false,
+  flatten = false
+} = {}) {
+  
+outputDir = normalizePath(outputDir);
+
+archiveName = `${archiveName}.zip`;
+
+  let outputPath = path.join(outputDir, archiveName);
+const ext = path.extname(archiveName);
+const base = path.basename(archiveName, ext);
+
+let count = 1;
+while (fsS.existsSync(outputPath)) {
+  outputPath = path.join(outputDir, `${base}(${count})${ext}`);
+  count++;
+}
+  const output = fsS.createWriteStream(outputPath);
+  const archive = archiver('zip', {
+    zlib: { level: 1 },
+  });
+
+  archive.pipe(output);
+
+const archiveFinished = new Promise((resolve, reject) => {
+    output.on('close', () => {
+  console.log(`✅ Архив успешно создан: ${outputPath}`);
+  resolve();
+});
+    archive.on('error', reject);
+  });
+
+  if (Array.isArray(inputPaths)) {
+    for (const filePath of inputPaths) {
+      if (flatten) {
+        archive.file(filePath, { name: path.basename(filePath) });
+      } else {
+        const relativePath = path.relative(process.cwd(), filePath);
+        archive.file(filePath, { name: relativePath });
+      }
+    }
+  } else if (typeof inputPaths === 'string') {
+    archive.directory(inputPaths, false); // Добавит содержимое папки
+  } else {
+    throw new Error('inputPaths должен быть строкой (папка) или массивом файлов');
+  }
+
+  archive.finalize();
+await archiveFinished
+}
+
 
 
 //запрос названия
@@ -88,7 +146,5 @@ musicPath = normalizePath(musicPath);
 
 
 
-
-
-module.exports = { askName, copySong, copyFilteredSongs, createPlaylist,  normalizePath, saveTracksToJSON };
+module.exports = { askName, copySong, copyFilteredSongs, createPlaylist,  normalizePath, saveTracksToJSON, archiveFiles };
 

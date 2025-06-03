@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 
-const { askName, copySong, copyFilteredSongs, createPlaylist } = require("./utils.js");
+const { askName, copySong, copyFilteredSongs, createPlaylist, archiveFiles } = require("./utils.js");
 const { collectMusic } = require('./collectMusic.js');
 const { filterMusic, findSongsWithoutMetadata } = require('./filterMusic.js');
 const { writeMetadataFromFile } = require('./metadata.js');
@@ -57,14 +57,18 @@ if (action === 'filter') {
     choices: [
       { name: '1. Скопировать', value: 'copy' },
       { name: '2. Создать плейлист', value: 'playlist' },
-      { name: '3. Вернуться в меню', value: 'back' }
+      { name: '3. Вернуться в меню', value: 'back' },
+      { name: '4. Архивировать', value: 'archive'}
     ]
   });
 
   if (subAction === 'copy') {
     await copyFilteredSongs(filteredSongs);
-  }
-    else if (subAction === 'playlist') {
+  } else if (subAction === 'archive'){
+    const files = filteredSongs.map((item) => {return item.path});
+    const archiveName = await askName('Обзови архив:');
+     await archiveFiles(files, inputPath, {archiveName});
+  }  else if (subAction === 'playlist') {
     await createPlaylist(filteredSongs, inputPath);
   } else {
     console.log('Возврат в главное меню...');
