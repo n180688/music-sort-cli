@@ -22,7 +22,7 @@ async function writeMetadataFromFile(filePath = './undefined.json') {
     let errorCount = 0;
 
     for (const song of songs) {
-      if (!song.title || !song.artist) {
+      if ( !song.title || !song.artist) {
         errorCount ++;
 	continue;
       }
@@ -83,11 +83,17 @@ async function getAllMetadataFromDir(inputPath) {
 async function getMetadata(filePath) {
   try {
     const metadata = await parseFile(filePath);
-return {
+    const codec = metadata.format.codec?.toLowerCase();
+    const isMp3 = codec?.includes('layer 3');
+
+
+	
+	return {
         title: metadata.common.title,
         artist: metadata.common.artist,
         duration: `${Math.floor(metadata.format.duration/60)}:${Math.round(metadata.format.duration%60).toString().padStart(2, '0')}`,
         path: filePath,
+	isMp3
         }
 
 } catch (error) {

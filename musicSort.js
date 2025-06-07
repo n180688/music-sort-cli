@@ -66,8 +66,9 @@ if (action === 'filter') {
     await copyFilteredSongs(filteredSongs);
   } else if (subAction === 'archive'){
     const files = filteredSongs.map((item) => {return item.path});
+    const outputDir = await askName("Куда сохранить?(по умолчанию в ту же папку)");
     const archiveName = await askName('Обзови архив:');
-     await archiveFiles(files, inputPath, {archiveName});
+     await archiveFiles(files, outputDir, {archiveName});
   }  else if (subAction === 'playlist') {
     await createPlaylist(filteredSongs, inputPath);
   } else {

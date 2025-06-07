@@ -10,8 +10,20 @@ const archiver = require('archiver');
 async function archiveFiles(inputPaths, outputDir, {
   archiveName = 'archive',
   log = false,
-  flatten = false
+  flatten = true,
 } = {}) {
+
+
+if (!outputDir) {
+  if (Array.isArray(inputPaths) && inputPaths.length > 0) {
+    outputDir = path.dirname(inputPaths[0]); // та же папка, что и у первого трека
+  } else if (typeof inputPaths === 'string') {
+    outputDir = inputPaths; 
+  } else {
+    outputDir = process.cwd(); 
+  }
+}
+
   
 outputDir = normalizePath(outputDir);
 
@@ -51,7 +63,7 @@ const archiveFinished = new Promise((resolve, reject) => {
       }
     }
   } else if (typeof inputPaths === 'string') {
-    archive.directory(inputPaths, false); // Добавит содержимое папки
+    archive.directory(inputPaths);
   } else {
     throw new Error('inputPaths должен быть строкой (папка) или массивом файлов');
   }
@@ -72,11 +84,17 @@ async function askName(message) {
 async function saveTracksToJSON(tracks, fileName = 'undefined.json') {
   const filePath = path.resolve(process.cwd(), fileName);
 
-const formatted = tracks.map(track => ({
+  // Оставляем только mp3 
+  const onlyMp3 = tracks.filter(track =>
+    track.isMp3
+  );
+
+const formatted = onlyMp3.map(track => ({
     title: track.title || '',
     artist: track.artist || '',
     duration: track.duration || '',
-    path: track.path
+    path: track.path,
+    isMp3: track.isMp3
   }));
 
 const jsonData = JSON.stringify(formatted, null, 2);
@@ -84,7 +102,7 @@ const jsonData = JSON.stringify(formatted, null, 2);
 
   try {
     await fs.writeFile(filePath, jsonData, 'utf8');
-    console.log(` Список сохранён в файл: ${filePath}`);
+    console.log(`Всего без метаданных: ${tracks.length}\nИз них Mp3: ${onlyMp3.length}\n Список сохранён в файл: ${filePath}`);
   } catch (err) {
     console.error(`Не удалось сохранить JSON: ${err.message}`);
   }
